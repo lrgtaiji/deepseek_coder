@@ -450,6 +450,7 @@ function runRepl(
       if (!input) { prompt(); return; }
 
       processing = true;
+      rl.pause();  // 屏蔽键盘输入，防止中途按键干扰光标
       gitSnapshot();
 
       let thinking = false, thinkingDots = 0, thinkingStart = 0;
@@ -532,11 +533,13 @@ function runRepl(
         } catch { /* 通知失败不影响核心功能 */ }
       } catch (err) {
         stopAnim();
+        rl.resume();
         console.log(M + "Error:", err instanceof Error ? err.message : String(err));
         process.stdout.write("\n");
       }
 
       processing = false;
+      rl.resume();
       prompt();
     });
 
