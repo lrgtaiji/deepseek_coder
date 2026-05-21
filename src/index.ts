@@ -39,7 +39,7 @@ program
     const settings = loadSettings(buildCLIOverrides(options));
     const provider = createProvider(settings);
     const tools = createTools();
-    const agentOpts = buildAgentOptions();
+    const agentOpts = buildAgentOptions(() => {});  // 回调在 REPL 中动态设置
 
     // MCP 工具加载（异步、可选）
     const mcpTools: Map<string, BaseTool> = new Map();
@@ -114,9 +114,8 @@ function createTools(): Map<string, BaseTool> {
   return tools;
 }
 
-function buildAgentOptions(): AgentOptions {
-  const opts: AgentOptions = {};
-  // 这些可选模块加载失败不影响核心功能
+function buildAgentOptions(onMessages: (msgs: any[]) => void): AgentOptions {
+  const opts: AgentOptions & { onMessages?: (msgs: any[]) => void } = { onMessages };
   try {
     const { MemoryStore } = require("./context/memory") as typeof import("./context/memory");
     const g = new MemoryStore("global").buildMemoryPrompt();
@@ -202,6 +201,10 @@ function runRepl(
     const ss = require("./context/session-store") as typeof import("./context/session-store");
     let sessionId = ss.createSession();
 
+    // 对话历史（跨轮上下文）
+    let conversationHistory: import("./providers/base-provider").Message[] = [];
+    agentOpts.onMessages = (msgs) => { conversationHistory = msgs; };
+
     // Hooks
     let hooks: import("./hooks/hook-manager").HookManager | null = null;
     try {
@@ -255,7 +258,7 @@ function runRepl(
         prompt();
       },
       "/model": () => { console.log(M + "Model: " + bold + settings.model + reset); prompt(); },
-      "/clear": () => { console.clear(); prompt(); },
+      "/clear": () => { conversationHistory = []; hlBuf = ""; console.clear(); prompt(); },
 
       "/status": () => {
         console.log(M + bold + "DS Code" + reset + " v" + VERSION);
@@ -378,7 +381,7 @@ function runRepl(
       },
 
       "/new": () => {
-        hlBuf = ""; sessionTokens = 0; editSnapshots.length = 0;
+        hlBuf = ""; sessionTokens = 0; editSnapshots.length = 0; conversationHistory = [];
         sessionId = ss.createSession();
         console.log(M + "New session: " + gray + sessionId + reset);
         prompt();
@@ -459,7 +462,7 @@ function runRepl(
         process.stdout.write("\n" + M + cyan + bold + "You:" + reset + "\n");
         process.stdout.write(M + gray + input + reset + "\n\n");
 
-        for await (const ev of agentLoop(provider, settings, tools, input, undefined, agentOpts)) {
+        for await (const ev of agentLoop(provider, settings, tools, input, undefined, agentOpts, undefined, conversationHistory)) {
           switch (ev.type) {
             case "thinking":
               if (!thinking) {

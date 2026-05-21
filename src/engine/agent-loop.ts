@@ -15,6 +15,7 @@ export interface AgentOptions {
   memoryPrompt?: string;
   skillsPrompt?: string;
   permissionManager?: PermissionManager;
+  onMessages?: (msgs: Message[]) => void;  // 每轮结束后回调，用于外部保存对话历史
 }
 
 export async function* agentLoop(
@@ -24,14 +25,13 @@ export async function* agentLoop(
   userMessage: string,
   signal?: AbortSignal,
   options?: AgentOptions,
-  images?: { url: string; detail?: string }[]
+  images?: { url: string; detail?: string }[],
+  history?: Message[]
 ): AsyncGenerator<AgentEvent> {
   const toolDefs: ToolDef[] = [];
   for (const tool of tools.values()) {
     toolDefs.push(tool.toToolDef());
   }
-
-  const systemContent = buildSystemPrompt(tools, settings.model, options);
 
   // 多模态消息: 文本 + 图片
   let userContent: Message["content"] = userMessage;
@@ -45,10 +45,17 @@ export async function* agentLoop(
     ];
   }
 
-  let messages: Message[] = [
-    { role: "system", content: systemContent },
-    { role: "user", content: userContent },
-  ];
+  // 使用已有历史或新建对话
+  let messages: Message[];
+  if (history && history.length > 0) {
+    messages = [...history, { role: "user", content: userContent }];
+  } else {
+    const systemContent = buildSystemPrompt(tools, settings.model, options);
+    messages = [
+      { role: "system", content: systemContent },
+      { role: "user", content: userContent },
+    ];
+  }
 
   let round = 0;
   const maxRounds = settings.tools.maxToolRounds;
@@ -147,6 +154,7 @@ export async function* agentLoop(
 
     // 无工具调用 → 对话结束
     if (toolCalls.length === 0) {
+      options?.onMessages?.(messages);
       yield { type: "finish", content: fullText };
       return;
     }
@@ -255,6 +263,7 @@ export async function* agentLoop(
     }
   }
 
+  options?.onMessages?.(messages);
   yield { type: "error", content: `Max tool rounds (${maxRounds}) reached` };
 }
 
