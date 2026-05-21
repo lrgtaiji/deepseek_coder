@@ -462,7 +462,7 @@ function runRepl(
         stopAnim();
         if (thinking) {
           const s = ((Date.now() - thinkingStart) / 1000).toFixed(1);
-          process.stdout.write("\r" + M + gray + "thinking (" + s + "s)" + reset + "\n");
+          process.stdout.write("\r" + M + gray + "thinking (" + s + "s)" + reset + "\x1b[K\n");
           thinking = false;
         }
       };
@@ -481,7 +481,7 @@ function runRepl(
                 thinking = true; thinkingStart = Date.now();
                 thinkingTimer = setInterval(() => {
                   thinkingDots = (thinkingDots + 1) % 4;
-                  process.stdout.write("\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset);
+                  process.stdout.write("\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset + "\x1b[K");
                 }, 300);
               }
               break;
@@ -498,7 +498,7 @@ function runRepl(
             }
             case "tool_start":
               stopAnim();
-              process.stdout.write("\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\n");
+              process.stdout.write("\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\x1b[K\n");
               break;
             case "error":
               process.stdout.write("\n" + M + gray + "Error: " + ev.content + reset + "\n");
