@@ -201,8 +201,9 @@ function runRepl(
     const ss = require("./context/session-store") as typeof import("./context/session-store");
     let sessionId = ss.createSession();
 
-    // 对话历史（跨轮上下文）
+    // 对话历史 + 权限模式
     let conversationHistory: import("./providers/base-provider").Message[] = [];
+    let permissionMode: "plan" | "default" = "default";
     agentOpts.onMessages = (msgs) => { conversationHistory = msgs; };
 
     // Hooks
@@ -253,11 +254,23 @@ function runRepl(
         console.log(M + bold + "Commands" + reset);
         console.log(M + gray + "/status   /diff     /cost     /memory");
         console.log(M + "/skills   /config   /compact  /undo");
-        console.log(M + "/resume   /new      /model   /clear");
-        console.log(M + "/help     /exit" + reset);
+        console.log(M + "/resume   /new      /model   /plan");
+        console.log(M + "/clear    /help     /exit" + reset);
         prompt();
       },
       "/model": () => { console.log(M + "Model: " + bold + settings.model + reset); prompt(); },
+      "/plan": () => {
+        if (permissionMode === "plan") {
+          permissionMode = "default";
+          if (agentOpts.permissionManager) agentOpts.permissionManager.setMode("default");
+          console.log(M + gray + "Plan mode OFF — writes allowed (with confirmation)" + reset);
+        } else {
+          permissionMode = "plan";
+          if (agentOpts.permissionManager) agentOpts.permissionManager.setMode("plan");
+          console.log(M + gray + "Plan mode ON — read-only, no changes will be made" + reset);
+        }
+        prompt();
+      },
       "/clear": () => { conversationHistory = []; hlBuf = ""; console.clear(); prompt(); },
 
       "/status": () => {
