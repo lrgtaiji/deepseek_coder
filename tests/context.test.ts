@@ -76,7 +76,7 @@ describe("ContextCompressor", () => {
       { role: "tool" as const, content: "result3", name: "Write" },
     ];
     const deduped = ContextCompressor.dedupeToolCalls(messages);
-    expect(deduped.length).toBe(2); // 两个 Read 合并
+    expect(deduped.length).toBe(3); // tool 消息不再合并（保护 tool_call_id）
   });
 
   it("should collapse tool rounds for long conversations", async () => {

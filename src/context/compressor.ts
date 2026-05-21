@@ -10,7 +10,7 @@ export class ContextCompressor {
     return `${truncated}\n...[truncated: ${omitted} more chars]`;
   }
 
-  // 第2层: 冗余检测 — 合并连续重复的工具调用
+  // 第2层: 冗余检测 — 对 system/user 消息去重，跳过 tool/assistant
   static dedupeToolCalls(messages: Message[]): Message[] {
     if (messages.length < 3) return messages;
 
@@ -19,15 +19,11 @@ export class ContextCompressor {
 
     while (i < messages.length) {
       const current = messages[i]!;
-      if (current.role === "tool" && i + 1 < messages.length) {
+      // 不合并 tool 消息 —— 每个 tool_call_id 必须有对应的响应
+      if (current.role === "system" && i + 1 < messages.length) {
         const next = messages[i + 1]!;
-        if (next.role === "tool" && current.name === next.name) {
-          result.push({
-            role: "tool",
-            content: `${current.content}\n${next.content}`,
-            name: current.name,
-            tool_call_id: current.tool_call_id || next.tool_call_id || "compressed",
-          });
+        if (next.role === "system") {
+          result.push({ role: "system", content: (current.content ?? "") + "\n" + (next.content ?? "") });
           i += 2;
           continue;
         }
