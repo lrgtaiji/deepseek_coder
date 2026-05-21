@@ -38,6 +38,74 @@ dscode -i
 dscode --help
 ```
 
+## 使用指南
+
+### 交互模式
+
+```bash
+dscode -i
+```
+
+进入后直接输入问题，AI 实时响应：
+
+```
+dscode> 帮我重构 src/engine/agent-loop.ts 的错误处理
+dscode> /help          # 查看所有命令
+dscode> /status        # 项目状态、Git 分支、Token 用量
+dscode> /skills        # 列出 20+ 可用技能
+dscode> /exit          # 退出
+```
+
+### 单次问答
+
+```bash
+dscode "读取 package.json 并告诉我版本号"
+dscode "搜索项目中所有未使用的 import"
+dscode "解释 src/engine/agent-loop.ts 的核心逻辑"
+```
+
+### 常用参数
+
+```bash
+dscode -m deepseek-v4-flash -i           # Flash 模型更快更省
+dscode --no-thinking "1+1=?"             # 简单问题关掉思考
+dscode -p plan -i                        # 只读模式，不修改任何文件
+dscode --reasoning high "复杂任务"        # 调节推理强度 max|high|medium|min
+dscode --image screenshot.png "分析截图"  # 多模态图片分析
+```
+
+### 斜杠命令
+
+| 命令 | 功能 |
+|------|------|
+| `/help` | 列出所有命令 |
+| `/status` | 项目状态、Git 分支、Token 用量、会话信息 |
+| `/diff` | 查看工作区文件变更 |
+| `/config` | 查看当前模型、Provider、通知等配置 |
+| `/cost` | 查看当前会话 Token 用量和费用估算 |
+| `/undo` | 撤销上一次 Agent 的文件编辑（基于 Git） |
+| `/memory` | 查看/管理记忆系统 |
+| `/skills` | 列出所有可用 Skills |
+| `/resume` | 恢复之前的会话继续对话 |
+| `/new` | 新建会话，清空上下文 |
+| `/compact` | 手动压缩上下文，释放 Token 预算 |
+| `/model` | 查看当前使用的模型 |
+| `/clear` | 清屏 + 重置上下文 |
+| `/exit` | 退出 |
+
+### Skills（20+ 内置）
+
+输入 `/skill名` 即可调用，AI 会按照专业方法论工作：
+
+```bash
+dscode> /brainstorming 设计用户认证模块        # 需求探索和方案设计
+dscode> /systematic-debugging 排查这个报错     # 系统性调试方法论
+dscode> /test-driven-development 实现登录功能  # TDD 红-绿-重构循环
+dscode> /simplify                             # 代码审查、优化、清理
+dscode> /writing-plans 设计数据库迁移方案      # 编写详细实现计划
+dscode> /requesting-code-review               # 提交前自我审查
+```
+
 ## 核心功能
 
 ### 🧠 Agent 循环引擎
