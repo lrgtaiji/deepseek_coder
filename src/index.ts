@@ -39,7 +39,7 @@ program
     const settings = loadSettings(buildCLIOverrides(options));
     const provider = createProvider(settings);
     const tools = createTools();
-    const agentOpts = buildAgentOptions(() => {});  // 回调在 REPL 中动态设置
+    const agentOpts = buildAgentOptions();
 
     // MCP 工具加载（异步、可选）
     const mcpTools: Map<string, BaseTool> = new Map();
@@ -114,8 +114,8 @@ function createTools(): Map<string, BaseTool> {
   return tools;
 }
 
-function buildAgentOptions(onMessages: (msgs: any[]) => void): AgentOptions {
-  const opts: AgentOptions & { onMessages?: (msgs: any[]) => void } = { onMessages };
+function buildAgentOptions(): AgentOptions {
+  const opts: AgentOptions = {};
   try {
     const { MemoryStore } = require("./context/memory") as typeof import("./context/memory");
     const g = new MemoryStore("global").buildMemoryPrompt();
@@ -204,7 +204,6 @@ function runRepl(
     // 对话历史 + 权限模式
     let conversationHistory: import("./providers/base-provider").Message[] = [];
     let permissionMode: "plan" | "default" = "default";
-    agentOpts.onMessages = (msgs) => { conversationHistory = msgs; };
 
     // Hooks
     let hooks: import("./hooks/hook-manager").HookManager | null = null;

@@ -15,7 +15,6 @@ export interface AgentOptions {
   memoryPrompt?: string;
   skillsPrompt?: string;
   permissionManager?: PermissionManager;
-  onMessages?: (msgs: Message[]) => void;  // 每轮结束后回调，用于外部保存对话历史
 }
 
 export async function* agentLoop(
@@ -45,17 +44,15 @@ export async function* agentLoop(
     ];
   }
 
-  // 使用已有历史或新建对话
-  let messages: Message[];
+  // 使用已有历史或新建对话 — 直接写入 history 数组避免 callback 时序问题
   if (history && history.length > 0) {
-    messages = [...history, { role: "user", content: userContent }];
+    history.push({ role: "user", content: userContent });
   } else {
     const systemContent = buildSystemPrompt(tools, settings.model, options);
-    messages = [
-      { role: "system", content: systemContent },
-      { role: "user", content: userContent },
-    ];
+    if (history) { history.length = 0; history.push({ role: "system", content: systemContent }, { role: "user", content: userContent }); }
+    else { history = [{ role: "system", content: systemContent }, { role: "user", content: userContent }]; }
   }
+  let messages = history!;
 
   let round = 0;
   const maxRounds = settings.tools.maxToolRounds;
@@ -68,12 +65,14 @@ export async function* agentLoop(
 
     round++;
 
-    // 上下文压缩检查（60% 时折叠，80% 时做更激进的清理）
+    // 上下文压缩 — 原地修改保持 history 引用
     if (round % 5 === 0) {
-      messages = ContextCompressor.dedupeToolCalls(messages);
+      const deduped = ContextCompressor.dedupeToolCalls(messages);
+      if (deduped !== messages) { messages.length = 0; messages.push(...deduped); }
     }
     if (round % 10 === 0 && messages.length > 30) {
-      messages = ContextCompressor.collapseToolRounds(messages);
+      const collapsed = ContextCompressor.collapseToolRounds(messages);
+      if (collapsed !== messages) { messages.length = 0; messages.push(...collapsed); }
     }
 
     const chatOpts: ChatOptions = {
@@ -155,7 +154,6 @@ export async function* agentLoop(
 
     // 无工具调用 → 对话结束
     if (toolCalls.length === 0) {
-      options?.onMessages?.(messages);
       yield { type: "finish", content: fullText };
       return;
     }
@@ -264,7 +262,6 @@ export async function* agentLoop(
     }
   }
 
-  options?.onMessages?.(messages);
   yield { type: "error", content: `Max tool rounds (${maxRounds}) reached` };
 }
 
