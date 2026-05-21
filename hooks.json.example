@@ -1,0 +1,22 @@
+{
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "command": "echo \"[DS Code $(date +%H:%M:%S)] Session started\" >> $HOME/dscode.log"
+    },
+    {
+      "event": "SessionEnd",
+      "command": "echo \"[DS Code $(date +%H:%M:%S)] Session ended\" >> $HOME/dscode.log"
+    },
+    {
+      "event": "Notification",
+      "command": "echo \"[DS Code] Status: $DSCODE_EVENT\" >> $HOME/dscode.log"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "echo \"Bash executed: $DSCODE_TOOL_INPUT\" >> $HOME/dscode.log"
+    }
+  ]
+}
+

@@ -1,0 +1,6 @@
+tests/
+docs/
+node_modules/
+.bun/
+.env
+*.log
