@@ -15,12 +15,15 @@ export class BashTool extends BaseTool {
   private static dangerPatterns = [
     /rm\s+(-rf?\s+)?\//i,       // rm -rf /
     /curl\s+.*\|\s*(ba)?sh/i,   // curl | sh
+    /wget\s+.*\|\s*(ba)?sh/i,   // wget | sh
     /sudo\s+/i,                  // sudo
-    /chmod\s+777\s+\//i,         // chmod 777 /
+    /chmod\s+777/i,             // chmod 777
     /mkfs\./i,                  // mkfs (格式化)
     /dd\s+if=/i,                // dd
     />\s*\/dev\/sd/i,           // 覆盖磁盘
     /:\(\)\s*\{/i,              // fork bomb
+    /git\s+push\s+--force/i,    // force push
+    /git\s+reset\s+--hard/i,    // hard reset
   ];
 
   parameters = {
