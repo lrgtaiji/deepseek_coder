@@ -137,12 +137,13 @@ export async function* agentLoop(
       return;
     }
 
-    // 组装完整 ToolCall 列表
+    // 组装完整 ToolCall 列表（用计数器保证 ID 唯一）
+    let callSeq = 0;
     const toolCalls: ToolCall[] = [];
     for (const [_, entry] of toolCallAccum) {
       if (entry.name) {
         toolCalls.push({
-          id: entry.id || `call_${Date.now()}`,
+          id: entry.id || `call_${Date.now()}_${callSeq++}`,
           type: "function" as const,
           function: {
             name: entry.name,
