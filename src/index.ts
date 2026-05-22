@@ -16,6 +16,7 @@ import { GrepTool } from "./tools/grep";
 import { BashTool } from "./tools/bash";
 import { WebSearchTool } from "./tools/web-search";
 import { TodoWriteTool } from "./tools/todo-write";
+import { MemoryTool } from "./tools/memory-tool";
 
 import { gray, reset, yellow, cyan, bold, red, error as fmtError } from "./ui/colors";
 
@@ -108,7 +109,7 @@ function createProvider(settings: ReturnType<typeof loadSettings>): LLMProvider 
 
 function createTools(): Map<string, BaseTool> {
   const tools = new Map<string, BaseTool>();
-  for (const t of [new ReadTool(), new WriteTool(), new EditTool(), new GlobTool(), new GrepTool(), new BashTool(), new WebSearchTool(), new TodoWriteTool()]) {
+  for (const t of [new ReadTool(), new WriteTool(), new EditTool(), new GlobTool(), new GrepTool(), new BashTool(), new WebSearchTool(), new TodoWriteTool(), new MemoryTool()]) {
     tools.set(t.name, t);
   }
   return tools;
