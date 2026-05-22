@@ -45,14 +45,16 @@ export async function* agentLoop(
   }
 
   // 使用已有历史或新建对话 — 直接写入 history 数组避免 callback 时序问题
-  if (history && history.length > 0) {
-    history.push({ role: "user", content: userContent });
-  } else {
-    const systemContent = buildSystemPrompt(tools, settings.model, options);
-    if (history) { history.length = 0; history.push({ role: "system", content: systemContent }, { role: "user", content: userContent }); }
-    else { history = [{ role: "system", content: systemContent }, { role: "user", content: userContent }]; }
+  // 确保 system prompt 始终在最前面（支持从磁盘恢复的历史）
+  history = history ?? [];
+  const systemContent = buildSystemPrompt(tools, settings.model, options);
+  // 移除已有的 system 消息避免重复
+  while (history.length > 0 && history[0]!.role === "system") {
+    history.shift();
   }
-  let messages = history!;
+  history.unshift({ role: "system", content: systemContent });
+  history.push({ role: "user", content: userContent });
+  let messages = history;
 
   let round = 0;
   const maxRounds = settings.tools.maxToolRounds;

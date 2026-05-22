@@ -206,6 +206,23 @@ function runRepl(
     let conversationHistory: import("./providers/base-provider").Message[] = [];
     let permissionMode: "plan" | "default" = "default";
 
+    // 自动恢复最近会话（如果存在且有消息）
+    try {
+      const recent = ss.listSessions(1)[0];
+      if (recent && recent.messageCount > 0 && recent.id !== sessionId) {
+        const msgs = ss.loadSession(recent.id);
+        if (msgs.length > 0) {
+          sessionId = recent.id;
+          conversationHistory = msgs.map((m) => ({
+            role: m.role,
+            content: m.content,
+          } as import("./providers/base-provider").Message));
+          console.log(M + "Auto-resumed session: " + recent.id + " (" + recent.messageCount + " msgs)");
+          console.log(M + gray + "  Tip: /new to start fresh, /resume to switch session" + reset);
+        }
+      }
+    } catch { /* no previous sessions */ }
+
     // Hooks
     let hooks: import("./hooks/hook-manager").HookManager | null = null;
     try {
@@ -445,6 +462,11 @@ function runRepl(
             sessionId = chosen.id;
             hlBuf = ""; sessionTokens = 0;
             const msgs = ss.loadSession(chosen.id);
+            // 将加载的历史注入 conversationHistory，让 agent loop 能看到上下文
+            conversationHistory = msgs.map((m) => ({
+              role: m.role,
+              content: m.content,
+            } as import("./providers/base-provider").Message));
             console.log(M + "Resumed: " + gray + chosen.id + reset + " (" + chosen.messageCount + " msgs)");
             if (msgs.length > 0) {
               const last = msgs.slice(-4);

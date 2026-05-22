@@ -1,7 +1,7 @@
 import { BaseTool, ToolResult } from "./base-tool";
 import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 
 const MAX_FILE_SIZE = 1_024 * 1_024;
 const SKIP_DIRS = new Set(["node_modules", ".git", ".bun", "dist", "build", "__pycache__", ".next"]);
@@ -91,10 +91,11 @@ export class GrepTool extends BaseTool {
     cmdParts.push(pattern, searchPath);
 
     try {
-      const output = execSync(cmdParts.join(" "), {
+      const output = execFileSync(cmdParts[0]!, cmdParts.slice(1), {
         timeout: 30000,
         encoding: "utf-8",
         maxBuffer: 10 * 1024 * 1024,
+        shell: false,
       });
       const lines = output.trim().split("\n").filter(Boolean);
       const prefix = outputMode === "count"
