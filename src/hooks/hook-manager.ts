@@ -87,7 +87,7 @@ export class HookManager {
     for (const hook of matched) {
       // 安全检查：拒绝明显危险的 hook 命令
       if (isDangerousHookCommand(hook.command)) {
-        console.warn(`[hook] Blocked dangerous command: ${hook.command.slice(0, 80)}`);
+        logger.warn(`[hook] Blocked dangerous command: ${hook.command.slice(0, 80)}`);
         continue;
       }
       const timeout = sync ? 10000 : (hook.timeout ?? 30000);

@@ -6,11 +6,14 @@ import { execSync, execFileSync } from "node:child_process";
 const MAX_FILE_SIZE = 1_024 * 1_024;
 const SKIP_DIRS = new Set(["node_modules", ".git", ".bun", "dist", "build", "__pycache__", ".next"]);
 
+let _hasRipgrep: boolean | null = null;
 function hasRipgrep(): boolean {
+  if (_hasRipgrep !== null) return _hasRipgrep;
   try {
     execSync("rg --version", { timeout: 1000, stdio: "ignore" });
-    return true;
-  } catch { return false; }
+    _hasRipgrep = true;
+  } catch { _hasRipgrep = false; }
+  return _hasRipgrep;
 }
 
 export class GrepTool extends BaseTool {
@@ -74,9 +77,13 @@ export class GrepTool extends BaseTool {
     if (outputMode === "count") cmdParts.push("-c");
     if (outputMode === "content") {
       cmdParts.push("-n");
-      const ctxLines = Math.max(context, before, after);
-      if (ctxLines > 0) cmdParts.push("-C", String(ctxLines));
-      else cmdParts.push("-n");
+      cmdParts.push("-n");
+      if (context > 0) {
+        cmdParts.push("-C", String(context));
+      } else {
+        if (before > 0) cmdParts.push("-B", String(before));
+        if (after > 0) cmdParts.push("-A", String(after));
+      }
     }
 
     // 排除目录

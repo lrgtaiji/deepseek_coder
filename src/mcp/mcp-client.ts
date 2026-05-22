@@ -145,8 +145,7 @@ export class MCPClient {
   // 发送 JSON-RPC 通知（无 id，不等待响应）
   private sendNotification(method: string, params?: Record<string, unknown>): void {
     if (!this.proc || this.proc.killed) return;
-    const msg = { jsonrpc: "2.0", method, params };
-    this.proc.stdin?.write(JSON.stringify(msg) + "\n");
+    try { this.proc.stdin?.write(JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n"); } catch { /* stream closed */ }
   }
 
   // 发送 JSON-RPC 请求

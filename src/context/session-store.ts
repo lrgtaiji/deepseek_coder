@@ -53,8 +53,8 @@ export function saveMessage(sessionId: string, msg: SessionMessage): void {
   const path = join(BASE, sessionId + ".jsonl");
   const line = JSON.stringify(msg) + "\n";
   try { writeFileSync(path, line, { flag: "as" }); } catch (err) {
-    logger.warn(`Session save failed, retrying: ${err instanceof Error ? err.message : String(err)}`);
-    try { writeFileSync(path, line, { flag: "as", encoding: "utf-8" }); } catch (err2) { logger.error(`Session save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
+    logger.warn(`Session save failed, retrying with flag "a": ${err instanceof Error ? err.message : String(err)}`);
+    try { writeFileSync(path, line, { flag: "a" }); } catch (err2) { logger.error(`Session save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
   }
 }
 
@@ -64,8 +64,8 @@ export function saveExchange(sessionId: string, userMsg: SessionMessage, assista
   const path = join(BASE, sessionId + ".jsonl");
   const lines = JSON.stringify(userMsg) + "\n" + JSON.stringify(assistantMsg) + "\n";
   try { writeFileSync(path, lines, { flag: "as" }); } catch (err) {
-    logger.warn(`Exchange save failed, retrying: ${err instanceof Error ? err.message : String(err)}`);
-    try { writeFileSync(path, lines, { flag: "as", encoding: "utf-8" }); } catch (err2) { logger.error(`Exchange save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
+    logger.warn(`Exchange save failed, retrying with flag "a": ${err instanceof Error ? err.message : String(err)}`);
+    try { writeFileSync(path, lines, { flag: "a" }); } catch (err2) { logger.error(`Exchange save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
   }
 
   // 递增更新索引，避免全量读取

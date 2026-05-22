@@ -107,7 +107,7 @@ export class Notifier {
     if (!this.script) return;
     // 安全检查
     if (isDangerousScript(this.script)) {
-      console.warn(`[notify] Blocked dangerous script: ${this.script.slice(0, 80)}`);
+      logger.warn(`[notify] Blocked dangerous script: ${this.script.slice(0, 80)}`);
       return;
     }
     try {
