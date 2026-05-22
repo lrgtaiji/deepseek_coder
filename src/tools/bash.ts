@@ -44,10 +44,7 @@ export class BashTool extends BaseTool {
       type: "integer",
       description: "超时毫秒数（可选，默认 120000）",
     },
-    run_in_background: {
-      type: "boolean",
-      description: "是否后台执行（可选，默认 false）",
-    },
+
   };
 
   required = ["command"];

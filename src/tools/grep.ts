@@ -77,7 +77,6 @@ export class GrepTool extends BaseTool {
     if (outputMode === "count") cmdParts.push("-c");
     if (outputMode === "content") {
       cmdParts.push("-n");
-      cmdParts.push("-n");
       if (context > 0) {
         cmdParts.push("-C", String(context));
       } else {

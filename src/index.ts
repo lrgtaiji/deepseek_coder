@@ -213,10 +213,16 @@ function runRepl(
         const msgs = ss.loadSession(recent.id);
         if (msgs.length > 0) {
           sessionId = recent.id;
-          conversationHistory = msgs.map((m) => ({
-            role: m.role,
-            content: m.content,
-          } as import("./providers/base-provider").Message));
+          conversationHistory = msgs.map((m) => {
+            const msg: import("./providers/base-provider").Message = {
+              role: m.role as "user" | "assistant" | "system" | "tool",
+              content: m.content,
+            };
+            if (m.tool_calls) msg.tool_calls = m.tool_calls;
+            if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+            if (m.reasoning_content) msg.reasoning_content = m.reasoning_content;
+            return msg;
+          });
           console.log(M + "Auto-resumed session: " + recent.id + " (" + recent.messageCount + " msgs)");
           console.log(M + gray + "  Tip: /new to start fresh, /resume to switch session" + reset);
         }
@@ -463,10 +469,16 @@ function runRepl(
             hlBuf = ""; sessionTokens = 0;
             const msgs = ss.loadSession(chosen.id);
             // 将加载的历史注入 conversationHistory，让 agent loop 能看到上下文
-            conversationHistory = msgs.map((m) => ({
-              role: m.role,
-              content: m.content,
-            } as import("./providers/base-provider").Message));
+            conversationHistory = msgs.map((m) => {
+              const msg: import("./providers/base-provider").Message = {
+                role: m.role as "user" | "assistant" | "system" | "tool",
+                content: m.content,
+              };
+              if (m.tool_calls) msg.tool_calls = m.tool_calls;
+              if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+              if (m.reasoning_content) msg.reasoning_content = m.reasoning_content;
+              return msg;
+            });
             console.log(M + "Resumed: " + gray + chosen.id + reset + " (" + chosen.messageCount + " msgs)");
             if (msgs.length > 0) {
               const last = msgs.slice(-4);
@@ -558,9 +570,18 @@ function runRepl(
 
         // 批量保存（一次 I/O，替代原来的 2×saveMessage = 6 次 I/O）
         if (textStarted && assistantOutput) {
+          // 从 conversationHistory 中获取最新的 assistant 消息，保留 tool_calls 等完整字段
+          const lastAssistant = conversationHistory.filter(m => m.role === "assistant").pop();
+          const assistantSessionMsg: import("./context/session-store").SessionMessage = {
+            role: "assistant",
+            content: assistantOutput,
+            timestamp: new Date().toISOString(),
+            ...(lastAssistant?.tool_calls ? { tool_calls: lastAssistant.tool_calls } : {}),
+            ...(lastAssistant?.reasoning_content ? { reasoning_content: lastAssistant.reasoning_content } : {}),
+          };
           ss.saveExchange(sessionId,
             { role: "user", content: input, timestamp: new Date().toISOString() },
-            { role: "assistant", content: assistantOutput, timestamp: new Date().toISOString() }
+            assistantSessionMsg
           );
         }
 

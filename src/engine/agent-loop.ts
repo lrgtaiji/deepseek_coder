@@ -49,8 +49,13 @@ export async function* agentLoop(
   history = history ?? [];
   const systemContent = buildSystemPrompt(tools, settings.model, options);
   // 移除已有的 system 消息避免重复
-  while (history.length > 0 && history[0]!.role === "system") {
-    history.shift();
+  while (history.length > 0) {
+    const first = history[0];
+    if (first && first.role === "system") {
+      history.shift();
+    } else {
+      break;
+    }
   }
   history.unshift({ role: "system", content: systemContent });
   history.push({ role: "user", content: userContent });

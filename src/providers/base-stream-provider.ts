@@ -136,7 +136,9 @@ export abstract class BaseStreamProvider implements LLMProvider {
     }
 
     if (delta.tool_calls) {
-      for (const tc of delta.tool_calls as Array<Record<string, unknown>>) {
+      const toolCalls = delta.tool_calls as Array<Record<string, unknown>>;
+      if (toolCalls.length > 0) {
+        const tc = toolCalls[0]!;
         const fn = tc.function as Record<string, unknown> | undefined;
         result.event = {
           type: "tool_call",

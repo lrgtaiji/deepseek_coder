@@ -12,9 +12,17 @@ export interface SessionEntry {
 }
 
 export interface SessionMessage {
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
   timestamp: string;
+  // 扩展字段：保存完整 Message 信息，支持会话恢复
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
+  reasoning_content?: string;
 }
 
 const BASE = join(homedir(), ".ds-code", "sessions");
