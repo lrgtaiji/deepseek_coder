@@ -497,7 +497,7 @@ function runRepl(
       if (closed || processing) return;
       const W = Math.min(process.stdout.columns || 80, 120);
       const sep = orange + "─".repeat(W) + reset;
-      process.stdout.write(sep + "\n");
+      process.stdout.write("\n" + sep + "\n");
       rl.prompt();
     };
 
