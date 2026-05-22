@@ -47,7 +47,7 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
       {/* 头部 */}
       <Box marginBottom={1}>
         <Text bold color="magenta">DS Code</Text>
-        <Text color="gray"> v0.3.0 | {modelInfo}</Text>
+        <Text color="gray"> v1.0.0 | {modelInfo}</Text>
       </Box>
 
       {/* 消息区域 */}

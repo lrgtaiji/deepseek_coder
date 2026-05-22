@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { logger } from "../utils/logger";
 
 export interface SessionEntry {
   id: string;
@@ -50,7 +51,11 @@ export function createSession(): string {
 export function saveMessage(sessionId: string, msg: SessionMessage): void {
   ensureDir();
   const path = join(BASE, sessionId + ".jsonl");
-  try { writeFileSync(path, JSON.stringify(msg) + "\n", { flag: "as" }); } catch { writeFileSync(path, JSON.stringify(msg) + "\n", "utf-8"); }
+  const line = JSON.stringify(msg) + "\n";
+  try { writeFileSync(path, line, { flag: "as" }); } catch (err) {
+    logger.warn(`Session save failed, retrying: ${err instanceof Error ? err.message : String(err)}`);
+    try { writeFileSync(path, line, { flag: "as", encoding: "utf-8" }); } catch (err2) { logger.error(`Session save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
+  }
 }
 
 // 批量保存用户+助手消息，然后一次性刷新索引
@@ -58,7 +63,10 @@ export function saveExchange(sessionId: string, userMsg: SessionMessage, assista
   ensureDir();
   const path = join(BASE, sessionId + ".jsonl");
   const lines = JSON.stringify(userMsg) + "\n" + JSON.stringify(assistantMsg) + "\n";
-  try { writeFileSync(path, lines, { flag: "as" }); } catch { writeFileSync(path, lines, "utf-8"); }
+  try { writeFileSync(path, lines, { flag: "as" }); } catch (err) {
+    logger.warn(`Exchange save failed, retrying: ${err instanceof Error ? err.message : String(err)}`);
+    try { writeFileSync(path, lines, { flag: "as", encoding: "utf-8" }); } catch (err2) { logger.error(`Exchange save permanently failed: ${err2 instanceof Error ? err2.message : String(err2)}`); }
+  }
 
   // 递增更新索引，避免全量读取
   const idx = loadIndex();

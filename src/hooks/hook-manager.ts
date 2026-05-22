@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { logger } from "../utils/logger";
 
 export type HookEvent =
   | "SessionStart" | "SessionEnd" | "PreToolUse" | "PostToolUse"
@@ -21,6 +22,29 @@ export interface HookContext {
   toolOutput?: string;
   sessionId: string;
   cwd: string;
+}
+
+// 危险命令黑名单模式
+const HOOK_COMMAND_BLACKLIST = [
+  /rm\s+(-rf?\s+)?\//i,
+  /curl\s+.*\|\s*(ba)?sh/i,
+  /wget\s+.*\|\s*(ba)?sh/i,
+  /sudo\s+/i,
+  /chmod\s+777/i,
+  /mkfs\./i,
+  /dd\s+if=/i,
+  />\s*\/dev\/sd/i,
+  /:\(\)\s*\{/i,
+  /git\s+push\s+--force/i,
+  /git\s+reset\s+--hard/i,
+  /\b(echo|cat)\s+.*\|\s*(ba)?sh/i,
+];
+
+function isDangerousHookCommand(cmd: string): boolean {
+  for (const p of HOOK_COMMAND_BLACKLIST) {
+    if (p.test(cmd)) return true;
+  }
+  return false;
 }
 
 function loadHookConfig(): HookConfig[] {
@@ -61,6 +85,11 @@ export class HookManager {
     });
 
     for (const hook of matched) {
+      // 安全检查：拒绝明显危险的 hook 命令
+      if (isDangerousHookCommand(hook.command)) {
+        console.warn(`[hook] Blocked dangerous command: ${hook.command.slice(0, 80)}`);
+        continue;
+      }
       const timeout = sync ? 10000 : (hook.timeout ?? 30000);
       const env = {
         ...process.env,
@@ -71,7 +100,7 @@ export class HookManager {
         DSCODE_TOOL_INPUT: context.toolInput ? JSON.stringify(context.toolInput) : "",
         DSCODE_TOOL_OUTPUT: context.toolOutput ?? "",
       } as Record<string, string>;
-      try { execSync(hook.command, { timeout, stdio: "ignore", env }); } catch { /* skip */ }
+      try { execSync(hook.command, { timeout, stdio: "ignore", env }); } catch (err) { logger.warn(`Hook execution failed: ${hook.command.slice(0, 80)} — ${err instanceof Error ? err.message : String(err)}`); }
     }
   }
 }

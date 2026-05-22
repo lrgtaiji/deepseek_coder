@@ -370,9 +370,32 @@ function runRepl(
       },
 
       "/compact": () => {
-        console.log(M + gray + "Context compression triggered. Next response will use compacted history." + reset);
         hlBuf = "";
-        sessionTokens = Math.floor(sessionTokens * 0.4);
+        if (conversationHistory.length > 10) {
+          try {
+            const { ContextCompressor } = require("./context/compressor") as typeof import("./context/compressor");
+            const deduped = ContextCompressor.dedupeToolCalls(conversationHistory);
+            if (deduped !== conversationHistory) {
+              conversationHistory.length = 0;
+              conversationHistory.push(...deduped);
+            }
+            if (conversationHistory.length > 30) {
+              const collapsed = ContextCompressor.collapseToolRounds(conversationHistory);
+              if (collapsed !== conversationHistory) {
+                conversationHistory.length = 0;
+                conversationHistory.push(...collapsed);
+              }
+            }
+            const { estimateMessageTokens } = require("./context/token-counter") as typeof import("./context/token-counter");
+            sessionTokens = estimateMessageTokens(conversationHistory.map(m => ({ role: m.role, content: typeof m.content === "string" ? m.content : m.content ? JSON.stringify(m.content) : null })));
+            console.log(M + gray + `Context compressed: ${conversationHistory.length} messages, ~${sessionTokens.toLocaleString()} tokens` + reset);
+          } catch {
+            sessionTokens = Math.floor(sessionTokens * 0.4);
+            console.log(M + gray + "Context compression triggered (estimated)." + reset);
+          }
+        } else {
+          console.log(M + gray + "Context is small, no compression needed." + reset);
+        }
         prompt();
       },
 

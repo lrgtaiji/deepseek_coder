@@ -11,7 +11,7 @@ export class BashTool extends BaseTool {
   isReadOnly = false;
   requiresApproval = true;
 
-  // 危险命令模式
+  // 危险命令模式（直接匹配）
   private static dangerPatterns = [
     /rm\s+(-rf?\s+)?\//i,       // rm -rf /
     /curl\s+.*\|\s*(ba)?sh/i,   // curl | sh
@@ -24,6 +24,15 @@ export class BashTool extends BaseTool {
     /:\(\)\s*\{/i,              // fork bomb
     /git\s+push\s+--force/i,    // force push
     /git\s+reset\s+--hard/i,    // hard reset
+  ];
+
+  // 间接执行危险命令检测
+  private static indirectDangerPatterns = [
+    /\bpython\d?\s+-c\s+['"].*\b(os\.system|subprocess|eval|exec)\b/i,
+    /\bnode\s+-e\s+['"].*\b(child_process|exec|eval)\b/i,
+    /\bperl\s+-e\s+['"].*\bsystem\b/i,
+    /\bruby\s+-e\s+['"].*\b(system|exec|eval)\b/i,
+    /\beval\s*\(/i,
   ];
 
   parameters = {
@@ -75,11 +84,23 @@ export class BashTool extends BaseTool {
   }
 
   private checkDangerous(cmd: string): string | null {
+    if (cmd.length > 2000) return "Command too long (potential DoS)";
     for (const pattern of BashTool.dangerPatterns) {
       const match = cmd.match(pattern);
       if (match) return match[0];
     }
+    for (const pattern of BashTool.indirectDangerPatterns) {
+      const match = cmd.match(pattern);
+      if (match) return `Indirect dangerous command: ${match[0]}`;
+    }
     return null;
+  }
+
+  private getShell(command: string): { cmd: string; args: string[] } {
+    if (process.platform === "win32") {
+      return { cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive", "-Command", command] };
+    }
+    return { cmd: "bash", args: ["-c", command] };
   }
 
   private execWithTimeout(
@@ -87,7 +108,8 @@ export class BashTool extends BaseTool {
     timeoutMs: number
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
-      const proc = spawn("bash", ["-c", command], {
+      const shell = this.getShell(command);
+      const proc = spawn(shell.cmd, shell.args, {
         cwd: process.cwd(),
         env: process.env as Record<string, string>,
         stdio: ["pipe", "pipe", "pipe"],

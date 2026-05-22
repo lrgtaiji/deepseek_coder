@@ -14,7 +14,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, maxVisible = 20 })
     <Box flexDirection="column" marginBottom={1}>
       {messages.length === 0 && (
         <Box>
-          <Text color="gray">DS Code v0.3.0 — Type /help for commands, Esc to stop</Text>
+          <Text color="gray">DS Code v1.0.0 — Type /help for commands, Esc to stop</Text>
         </Box>
       )}
 

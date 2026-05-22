@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { ToolDef } from "../tools/base-tool";
+import { logger } from "../utils/logger";
 
 // MCP 服务器配置
 export interface MCPServerConfig {
@@ -98,6 +99,7 @@ export class MCPClient {
         capabilities: { tools: {} },
         clientInfo: { name: "dscode", version: "1.0.0" },
       }).then(() => {
+        this.sendNotification("notifications/initialized");
         clearTimeout(timeout);
         resolve();
       }).catch(reject);
@@ -140,6 +142,13 @@ export class MCPClient {
     if (this.proc) { this.proc.kill(); this.proc = null; }
   }
 
+  // 发送 JSON-RPC 通知（无 id，不等待响应）
+  private sendNotification(method: string, params?: Record<string, unknown>): void {
+    if (!this.proc || this.proc.killed) return;
+    const msg = { jsonrpc: "2.0", method, params };
+    this.proc.stdin?.write(JSON.stringify(msg) + "\n");
+  }
+
   // 发送 JSON-RPC 请求
   private send(method: string, params?: Record<string, unknown>): Promise<unknown> {
     return new Promise((resolve, reject) => {
@@ -170,7 +179,7 @@ export class MCPClient {
         } else {
           pending.resolve(msg.result);
         }
-      } catch { /* skip malformed JSON */ }
+      } catch (err) { logger.warn(`MCP "${this.serverName}" JSON parse error: ${err instanceof Error ? err.message : String(err)}`); }
     }
   }
 }
@@ -200,7 +209,7 @@ export class MCPManager {
         this.clients.push(r.value);
       } else {
         const [name] = entries[i]!;
-        console.warn(`MCP ${name}: failed to connect — ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+        logger.warn(`MCP ${name}: failed to connect — ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
       }
     }
     return connected;

@@ -1,10 +1,33 @@
 import { execSync, spawn } from "node:child_process";
+import { logger } from "../utils/logger";
 
 export interface NotifyContext {
   status: "success" | "error";
   summary: string;
   duration: number;
   model: string;
+}
+
+// PowerShell 参数转义：将需要转义的字符转换为安全形式
+function escapePsString(s: string): string {
+  // PowerShell 中单引号通过双写转义
+  return s.replace(/'/g, "''");
+}
+
+// 系统通知脚本命令黑名单
+const SCRIPT_BLACKLIST = [
+  /rm\s+(-rf?\s+)?\//i,
+  /curl\s+.*\|\s*(ba)?sh/i,
+  /sudo\s+/i,
+  /mkfs\./i,
+  />\s*\/dev\/sd/i,
+];
+
+function isDangerousScript(cmd: string): boolean {
+  for (const p of SCRIPT_BLACKLIST) {
+    if (p.test(cmd)) return true;
+  }
+  return false;
 }
 
 // 通知处理器
@@ -37,18 +60,20 @@ export class Notifier {
 
     try {
       if (process.platform === "win32") {
-        // PowerShell toast
+        const safeTitle = escapePsString(title);
+        const safeBody = escapePsString(body);
         execSync(
-          `powershell -c "New-BurntToastNotification -Text '${title}', '${body.replace(/'/g, "''")}'"`,
+          `powershell -NoProfile -Command "New-BurntToastNotification -Text '${safeTitle}', '${safeBody}'"`,
           { timeout: 5000, stdio: "ignore" }
         );
       } else if (process.platform === "darwin") {
-        spawn("osascript", ["-e", `display notification "${body}" with title "${title}"`], { stdio: "ignore" });
+        spawn("osascript", ["-e", `display notification "${body.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"`], { stdio: "ignore" });
       } else {
         spawn("notify-send", [title, body], { stdio: "ignore" });
       }
     } catch {
-      // 通知工具不可用时静默忽略
+      // 通知工具不可用时记录日志
+      logger.debug(`System notification failed: ${title}`);
     }
   }
 
@@ -74,12 +99,17 @@ export class Notifier {
           }],
         }),
       });
-    } catch { /* webhook 失败不影响核心功能 */ }
+    } catch (err) { logger.warn(`Webhook failed: ${this.webhook?.slice(0, 40) ?? ""} — ${err instanceof Error ? err.message : String(err)}`); }
   }
 
   // 自定义脚本
   private async runScript(ctx: NotifyContext): Promise<void> {
     if (!this.script) return;
+    // 安全检查
+    if (isDangerousScript(this.script)) {
+      console.warn(`[notify] Blocked dangerous script: ${this.script.slice(0, 80)}`);
+      return;
+    }
     try {
       execSync(this.script, {
         timeout: 30000,
@@ -92,6 +122,6 @@ export class Notifier {
           DSCODE_MODEL: ctx.model,
         } as Record<string, string>,
       });
-    } catch { /* 脚本失败不影响核心功能 */ }
+    } catch (err) { logger.warn(`Notification script failed: ${this.script?.slice(0, 40) ?? ""} — ${err instanceof Error ? err.message : String(err)}`); }
   }
 }

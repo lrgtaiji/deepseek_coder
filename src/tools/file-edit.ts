@@ -51,7 +51,7 @@ export class EditTool extends BaseTool {
       }
 
       const content = readFileSync(filePath, "utf-8");
-      const count = content.split(oldStr).length - 1;
+      const count = this.countOccurrences(content, oldStr);
 
       if (count === 0) {
         return { success: false, output: `old_string not found in ${filePath}`, truncated: false };
@@ -65,7 +65,7 @@ export class EditTool extends BaseTool {
         };
       }
 
-      const newContent = replaceAll ? content.replaceAll(oldStr, newStr) : content.replace(oldStr, newStr);
+      const newContent = replaceAll ? content.split(oldStr).join(newStr) : content.replace(oldStr, newStr);
       writeFileSync(filePath, newContent, "utf-8");
 
       const replaced = replaceAll ? count : 1;
@@ -81,5 +81,16 @@ export class EditTool extends BaseTool {
         truncated: false,
       };
     }
+  }
+
+  private countOccurrences(content: string, searchStr: string): number {
+    if (!searchStr) return 0;
+    let count = 0;
+    let pos = 0;
+    while ((pos = content.indexOf(searchStr, pos)) !== -1) {
+      count++;
+      pos += searchStr.length;
+    }
+    return count;
   }
 }

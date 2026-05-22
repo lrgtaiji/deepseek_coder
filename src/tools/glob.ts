@@ -2,9 +2,14 @@ import { BaseTool, ToolResult } from "./base-tool";
 import { readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
+const SKIP_DIRS = new Set([
+  "node_modules", ".git", ".bun", "dist", "build", "__pycache__",
+  ".next", ".nuxt", "target", "vendor", ".venv", "venv",
+]);
+
 export class GlobTool extends BaseTool {
   name = "Glob";
-  description = "按 glob 模式匹配文件，返回按修改时间排序的文件路径列表";
+  description = "按 glob 模式匹配文件，返回文件路径列表（按修改时间排序）";
   isReadOnly = true;
   requiresApproval = false;
 
@@ -36,14 +41,15 @@ export class GlobTool extends BaseTool {
         return { success: true, output: `No files matching: ${pattern}`, truncated: false };
       }
 
-      // 按修改时间降序排列
-      files.sort((a, b) => {
-        try {
-          return statSync(b).mtimeMs - statSync(a).mtimeMs;
-        } catch {
-          return 0;
-        }
-      });
+      if (files.length <= 200) {
+        files.sort((a, b) => {
+          try {
+            return statSync(join(basePath, b)).mtimeMs - statSync(join(basePath, a)).mtimeMs;
+          } catch {
+            return 0;
+          }
+        });
+      }
 
       const { text, truncated } = this.truncate(files.join("\n"));
       return { success: true, output: text, truncated };
@@ -56,7 +62,6 @@ export class GlobTool extends BaseTool {
     }
   }
 
-  // 简单的 glob 实现，支持 ** 和 *
   private glob(baseDir: string, pattern: string): string[] {
     const results: string[] = [];
     const parts = pattern.replace(/\\/g, "/").split("/");
@@ -71,6 +76,8 @@ export class GlobTool extends BaseTool {
     idx: number,
     results: string[]
   ): void {
+    if (results.length >= 1000) return;
+
     if (idx >= parts.length) {
       results.push(currentDir);
       return;
@@ -79,12 +86,11 @@ export class GlobTool extends BaseTool {
     const part = parts[idx]!;
 
     if (part === "**") {
-      // 匹配当前目录
       this.walk(rootDir, currentDir, parts, idx + 1, results);
 
-      // 递归子目录
       try {
         for (const entry of readdirSync(currentDir)) {
+          if (SKIP_DIRS.has(entry)) continue;
           const full = join(currentDir, entry);
           try {
             if (statSync(full).isDirectory() && !entry.startsWith(".")) {
@@ -98,7 +104,9 @@ export class GlobTool extends BaseTool {
 
     try {
       for (const entry of readdirSync(currentDir)) {
+        if (results.length >= 1000) break;
         if (entry.startsWith(".") && !part.startsWith(".")) continue;
+        if (SKIP_DIRS.has(entry)) continue;
 
         if (this.matchSegment(entry, part)) {
           const full = join(currentDir, entry);
@@ -118,7 +126,6 @@ export class GlobTool extends BaseTool {
 
   private matchSegment(name: string, pattern: string): boolean {
     if (pattern === "*") return true;
-    // 简单通配符匹配
     const regex = new RegExp(
       "^" + pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$"
     );

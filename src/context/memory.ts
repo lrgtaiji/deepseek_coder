@@ -106,12 +106,15 @@ export class MemoryStore {
     }
   }
 
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   private updateIndex(entry: MemoryEntry): void {
     const line = `- [${entry.name}](${entry.name}.md) — ${entry.description}`;
     let index = this.getIndex();
     if (index.includes(`[${entry.name}]`)) {
-      // 更新已存在的行
-      const regex = new RegExp(`- \\[${entry.name}\\]\\([^)]+\\)[^\\n]*`, "g");
+      const regex = new RegExp(`- \\[${this.escapeRegex(entry.name)}\\]\\([^)]+\\)[^\\n]*`, "g");
       index = index.replace(regex, line);
     } else {
       index = index ? index + "\n" + line : "# Memory Index\n\n" + line;
