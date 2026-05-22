@@ -499,8 +499,6 @@ function runRepl(
       const sep = gray + "─".repeat(W) + reset;
       process.stdout.write(sep + "\n");
       rl.prompt();
-      process.stdout.write("\n" + sep);
-      process.stdout.write("\x1b[2A\x1b[9G");
     };
 
     rl.on("close", () => { closed = true; });
