@@ -501,6 +501,18 @@ function runRepl(
     };
 
     rl.on("close", () => { closed = true; });
+
+    // Ctrl+C 中断当前处理
+    let currentAbort: AbortController | null = null;
+    rl.on("SIGINT", () => {
+      if (processing && currentAbort) {
+        currentAbort.abort();
+        process.stdout.write(reset + "\n" + M + gray + "Interrupted." + reset + "\n");
+      } else {
+        closed = true; rl.close(); console.log("Bye."); resolve();
+      }
+    });
+
     rl.on("line", async (line) => {
       if (closed) return;
       const input = line.trim();
@@ -508,7 +520,9 @@ function runRepl(
       if (!input) { prompt(); return; }
 
       processing = true;
-      rl.pause();  // 屏蔽键盘输入，防止中途按键干扰光标
+      rl.pause();
+      const abortCtrl = new AbortController();
+      currentAbort = abortCtrl;
       gitSnapshot();
 
       let thinking = false, thinkingDots = 0, thinkingStart = 0;
@@ -533,7 +547,7 @@ function runRepl(
         process.stdout.write(reset + "\n" + M + cyan + bold + "You:" + reset + "\n");
         process.stdout.write(reset + M + gray + input + reset + "\n\n");
 
-        for await (const ev of agentLoop(provider, settings, tools, input, undefined, agentOpts, undefined, conversationHistory)) {
+        for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
           switch (ev.type) {
             case "thinking":
               if (!thinking) {
@@ -606,6 +620,7 @@ function runRepl(
       }
 
       processing = false;
+      currentAbort = null;
       rl.resume();
       prompt();
     });
