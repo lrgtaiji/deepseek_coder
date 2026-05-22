@@ -496,7 +496,7 @@ function runRepl(
     const prompt = () => {
       if (closed || processing) return;
       const W = Math.min(process.stdout.columns || 80, 120);
-      const sep = gray + "─".repeat(W) + reset;
+      const sep = yellow + "─".repeat(W) + reset;
       process.stdout.write(sep + "\n");
       rl.prompt();
     };
