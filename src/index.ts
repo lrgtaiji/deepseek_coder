@@ -521,7 +521,6 @@ function runRepl(
       if (!input) { prompt(); return; }
 
       processing = true;
-      rl.pause();
       const abortCtrl = new AbortController();
       currentAbort = abortCtrl;
       gitSnapshot();
@@ -615,14 +614,12 @@ function runRepl(
         } catch { /* 通知失败不影响核心功能 */ }
       } catch (err) {
         stopAnim();
-        rl.resume();
         console.log(M + "Error:", err instanceof Error ? err.message : String(err));
         process.stdout.write("\n");
       }
 
       processing = false;
       currentAbort = null;
-      rl.resume();
       prompt();
     });
 
