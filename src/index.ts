@@ -521,7 +521,7 @@ function runRepl(
         stopAnim();
         if (thinking) {
           const s = ((Date.now() - thinkingStart) / 1000).toFixed(1);
-          process.stdout.write("\r" + M + gray + "thinking (" + s + "s)" + reset + "\x1b[K\n");
+          process.stdout.write(reset + "\r" + M + gray + "thinking (" + s + "s)" + reset + "\x1b[K\n");
           thinking = false;
         }
       };
@@ -530,8 +530,8 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write("\n" + M + cyan + bold + "You:" + reset + "\n");
-        process.stdout.write(M + gray + input + reset + "\n\n");
+        process.stdout.write(reset + "\n" + M + cyan + bold + "You:" + reset + "\n");
+        process.stdout.write(reset + M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, undefined, agentOpts, undefined, conversationHistory)) {
           switch (ev.type) {
@@ -540,24 +540,24 @@ function runRepl(
                 thinking = true; thinkingStart = Date.now();
                 thinkingTimer = setInterval(() => {
                   thinkingDots = (thinkingDots + 1) % 4;
-                  process.stdout.write("\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset + "\x1b[K");
+                  process.stdout.write(reset + "\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset + "\x1b[K");
                 }, 300);
               }
               break;
             case "text": {
               finishThinking();
-              if (!textStarted) { textStarted = true; process.stdout.write(M + dash + "\n"); atLineStart = true; }
+              if (!textStarted) { textStarted = true; process.stdout.write(reset + M + dash + "\n"); atLineStart = true; }
               sessionTokens += ev.content.length;
               assistantOutput += ev.content;
               let hl = highlight(ev.content);
-              if (atLineStart) { hl = M + hl; atLineStart = false; }
+              if (atLineStart) { hl = reset + M + hl; atLineStart = false; }
               if (hl.endsWith("\n")) atLineStart = true;
               process.stdout.write(hl);
               break;
             }
             case "tool_start":
               stopAnim();
-              process.stdout.write("\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\x1b[K\n");
+              process.stdout.write(reset + "\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\x1b[K\n");
               break;
             case "error":
               process.stdout.write("\n" + M + gray + "Error: " + ev.content + reset + "\n");
@@ -565,7 +565,7 @@ function runRepl(
           }
         }
         finishThinking();
-        if (hlBuf) { process.stdout.write(M + hlBuf); hlBuf = ""; }
+        if (hlBuf) { process.stdout.write(reset + M + hlBuf); hlBuf = ""; }
         if (textStarted) process.stdout.write("\n");
 
         // 批量保存（一次 I/O，替代原来的 2×saveMessage = 6 次 I/O）
