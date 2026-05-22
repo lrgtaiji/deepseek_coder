@@ -498,6 +498,8 @@ function runRepl(
       const W = Math.min(process.stdout.columns || 80, 120);
       process.stdout.write(gray + M + "─".repeat(W - 3) + reset + "\n");
       rl.prompt();
+      process.stdout.write("\n" + gray + M + "─".repeat(W - 3) + reset);
+      process.stdout.write("\x1b[2A\x1b[9G");  // 光标回到 "dscode> " 后
     };
 
     rl.on("close", () => { closed = true; });
