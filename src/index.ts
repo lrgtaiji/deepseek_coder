@@ -18,7 +18,7 @@ import { WebSearchTool } from "./tools/web-search";
 import { TodoWriteTool } from "./tools/todo-write";
 import { MemoryTool } from "./tools/memory-tool";
 
-import { gray, reset, yellow, cyan, bold, red, error as fmtError } from "./ui/colors";
+import { gray, reset, yellow, orange, cyan, bold, red, error as fmtError } from "./ui/colors";
 
 const VERSION = "1.0.0";
 const program = new Command();
@@ -496,7 +496,7 @@ function runRepl(
     const prompt = () => {
       if (closed || processing) return;
       const W = Math.min(process.stdout.columns || 80, 120);
-      const sep = yellow + "─".repeat(W) + reset;
+      const sep = orange + "─".repeat(W) + reset;
       process.stdout.write(sep + "\n");
       rl.prompt();
     };
