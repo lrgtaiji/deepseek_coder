@@ -18,7 +18,7 @@ import { WebSearchTool } from "./tools/web-search";
 import { TodoWriteTool } from "./tools/todo-write";
 import { MemoryTool } from "./tools/memory-tool";
 
-import { gray, reset, yellow, blue, cyan, bold, red, error as fmtError } from "./ui/colors";
+import { gray, reset, yellow, blue, cyan, red, error as fmtError } from "./ui/colors";
 
 const VERSION = "1.0.0";
 const program = new Command();
@@ -284,14 +284,14 @@ function runRepl(
       "/exit": () => { if (hooks) hooks.trigger("SessionEnd"); closed = true; rl.close(); console.log("Bye."); resolve(); },
       "/quit": () => { if (hooks) hooks.trigger("SessionEnd"); closed = true; rl.close(); console.log("Bye."); resolve(); },
       "/help": () => {
-        console.log(M + bold + "Commands" + reset);
+        console.log(M + cyan + "Commands" + reset);
         console.log(M + gray + "/status   /diff     /cost     /memory");
         console.log(M + "/skills   /config   /compact  /undo");
         console.log(M + "/resume   /new      /model   /plan");
         console.log(M + "/clear    /help     /exit" + reset);
         prompt();
       },
-      "/model": () => { console.log(M + "Model: " + bold + settings.model + reset); prompt(); },
+      "/model": () => { console.log(M + "Model: " + cyan + settings.model + reset); prompt(); },
       "/plan": () => {
         if (permissionMode === "plan") {
           permissionMode = "default";
@@ -307,7 +307,7 @@ function runRepl(
       "/clear": () => { conversationHistory = []; hlBuf = ""; console.clear(); prompt(); },
 
       "/status": () => {
-        console.log(M + bold + "DS Code" + reset + " v" + VERSION);
+        console.log(M + cyan + "DS Code" + reset + " v" + VERSION);
         console.log(M + "Model:    " + settings.model);
         console.log(M + "CWD:      " + process.cwd());
         console.log(M + "Tokens:   ~" + sessionTokens.toLocaleString());
@@ -334,7 +334,7 @@ function runRepl(
           const { execSync } = require("node:child_process") as typeof import("node:child_process");
           const diff = execSync("git diff --stat 2>/dev/null", { encoding: "utf-8", timeout: 5000, stdio: ["pipe","pipe","pipe"] }).trim();
           if (diff) {
-            console.log(M + bold + "Working tree changes:" + reset);
+            console.log(M + cyan + "Working tree changes:" + reset);
             console.log(M + gray + diff.split("\n").map((l) => M + l).join("\n") + reset);
           } else {
             console.log(M + gray + "(no changes)" + reset);
@@ -347,7 +347,7 @@ function runRepl(
         // DeepSeek V4 价格估算: ~$0.28/M input, ~$1.10/M output (pro)
         const estInput = sessionTokens * 0.7, estOutput = sessionTokens * 0.3;
         const cost = (estInput / 1_000_000 * 0.28 + estOutput / 1_000_000 * 1.10);
-        console.log(M + bold + "Session usage:" + reset);
+        console.log(M + cyan + "Session usage:" + reset);
         console.log(M + "  Tokens:  ~" + sessionTokens.toLocaleString());
         console.log(M + "  Est cost: $" + cost.toFixed(4));
         console.log(M + gray + "  (DeepSeek-V4-Pro pricing)" + reset);
@@ -360,7 +360,7 @@ function runRepl(
           const g = new MemoryStore("global"), p = new MemoryStore("project");
           const idx = g.getIndex() || p.getIndex();
           if (idx) {
-            console.log(M + bold + "Memory" + reset);
+            console.log(M + cyan + "Memory" + reset);
             console.log(M + gray + idx.split("\n").map((l) => M + l).join("\n") + reset);
           } else {
             console.log(M + gray + "(no memories stored)" + reset);
@@ -377,7 +377,7 @@ function runRepl(
           const loader = new SkillsLoader();
           const all = loader.loadAll();
           if (all.length > 0) {
-            console.log(M + bold + "Available skills:" + reset);
+            console.log(M + cyan + "Available skills:" + reset);
             for (const s of all) console.log(M + "  /" + s.name + gray + " — " + s.description + reset);
           } else {
             console.log(M + gray + "(no skills loaded)" + reset);
@@ -388,7 +388,7 @@ function runRepl(
       },
 
       "/config": () => {
-        console.log(M + bold + "Current configuration:" + reset);
+        console.log(M + cyan + "Current configuration:" + reset);
         console.log(M + "  Model:    " + settings.model);
         console.log(M + "  Provider: " + settings.provider.name + " (" + settings.provider.baseUrl + ")");
         console.log(M + "  Thinking: " + (settings.thinking.enabled ? "on (" + settings.thinking.reasoningEffort + ")" : "off"));
@@ -464,7 +464,7 @@ function runRepl(
           prompt();
           return;
         }
-        console.log(M + bold + "Recent sessions:" + reset);
+        console.log(M + cyan + "Recent sessions:" + reset);
         for (let i = 0; i < others.length; i++) {
           const s = others[i]!;
           console.log(M + "  " + gray + "[" + (i + 1) + "]" + reset + " " + new Date(s.updated).toLocaleString() + " (" + s.messageCount + " msgs)");
@@ -555,7 +555,7 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write(reset + "\n" + reset + M + cyan + bold + "You:" + reset + "\n");
+        process.stdout.write(reset + "\n" + reset + M + cyan + cyan + "You:" + reset + "\n");
         process.stdout.write(reset + M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
@@ -634,7 +634,7 @@ function runRepl(
       prompt();
     });
 
-    console.log(M + bold + "DS Code" + reset + " v" + VERSION + " | " + settings.model);
+    console.log(M + cyan + "DS Code" + reset + " v" + VERSION + " | " + settings.model);
     console.log(M + gray + "/help for all commands  |  type your question" + reset + "\n");
     prompt();
   });
