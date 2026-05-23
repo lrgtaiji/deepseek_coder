@@ -2,7 +2,7 @@
 export const reset = "\x1b[0m";
 export const bold = "\x1b[1m";
 export const dim = "\x1b[2m";
-export const gray = "\x1b[90m";
+export const gray = "\x1b[38;5;244m";  // 256 色真灰，避免 bright black 触发 bold
 export const red = "\x1b[31m";
 export const green = "\x1b[32m";
 export const yellow = "\x1b[33m";
