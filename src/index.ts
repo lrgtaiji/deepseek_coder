@@ -182,16 +182,6 @@ async function startInteractive(
   provider: LLMProvider, settings: ReturnType<typeof loadSettings>,
   tools: Map<string, BaseTool>, agentOpts: AgentOptions, initialPrompt?: string
 ): Promise<void> {
-  // 优先尝试 React+Ink UI
-  try {
-    const { startInteractiveUI } = await import("./ui/startup");
-    const ink: any = startInteractiveUI(provider, settings, tools, agentOpts, initialPrompt);
-    await ink.waitUntilExit();
-    ink.unmount();
-    return;
-  } catch {
-    // Ink 不可用 → 回退 readline REPL
-  }
   if (initialPrompt) { await runSingleShot(provider, settings, tools, agentOpts, initialPrompt); process.stdout.write("\n"); }
   await runRepl(provider, settings, tools, agentOpts);
 }
