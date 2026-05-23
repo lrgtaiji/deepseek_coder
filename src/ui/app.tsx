@@ -183,14 +183,14 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
         </Box>
       )}
 
-      {/* 下线 + 输入框 */}
+      {/* 输入框 + 下线 */}
       {!running && (
         <>
-          <Text color="#005fd7">{sep}</Text>
           <Box>
             <Text>dscode&gt; </Text>
             <Text>{inputText}</Text>
           </Box>
+          <Text color="#005fd7">{sep}</Text>
         </>
       )}
     </Box>
