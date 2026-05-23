@@ -197,7 +197,7 @@ function runRepl(
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      terminal: true,
+      terminal: false,
       completer: (line: string) => {
         if (!line.startsWith("/")) return [[], line];
         const hits = allCommands.filter((c) => c.startsWith(line));
