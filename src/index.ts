@@ -510,6 +510,7 @@ function runRepl(
       process.stdout.write(reset + "\n" + M + gray + "/help  /status  /skills  /memory  /new  /plan  /exit" + reset + "\n");
       process.stdout.write(sep + "\n");
       rl.prompt();
+      process.stdout.write(reset);  // readline 的光标码可能被终端误解析，立即 reset
     };
 
     rl.on("close", () => { closed = true; });
@@ -555,8 +556,8 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write(reset + "\n" + reset + M + cyan + "You:" + reset + "\n");
-        process.stdout.write(reset + M + gray + input + reset + "\n\n");
+        process.stdout.write("\x1b[0m\n\x1b[0m" + M + cyan + "You:" + reset + "\n");
+        process.stdout.write("\x1b[0m" + M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
           switch (ev.type) {
