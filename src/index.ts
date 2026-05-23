@@ -193,7 +193,17 @@ function runRepl(
 ): Promise<void> {
   return new Promise((resolve) => {
     const readline = require("node:readline") as typeof import("node:readline");
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    const allCommands = ["/exit","/quit","/help","/status","/diff","/cost","/memory","/skills","/config","/compact","/undo","/resume","/new","/model","/plan","/clear"];
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+      completer: (line: string) => {
+        if (!line.startsWith("/")) return [[], line];
+        const hits = allCommands.filter((c) => c.startsWith(line));
+        return [hits.length ? hits : allCommands, line];
+      },
+    });
     const M = "   ";
     let closed = false, processing = false;
     let hlBuf = "";
@@ -497,7 +507,8 @@ function runRepl(
       if (closed || processing) return;
       const W = Math.min(process.stdout.columns || 80, 120);
       const sep = blue + "─".repeat(W) + reset;
-      process.stdout.write(reset + "\n" + sep + "\n");
+      process.stdout.write(reset + "\n" + M + gray + "/help  /status  /skills  /memory  /new  /plan  /exit" + reset + "\n");
+      process.stdout.write(sep + "\n");
       rl.prompt();
     };
 
