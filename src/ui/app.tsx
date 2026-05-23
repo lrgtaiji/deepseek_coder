@@ -19,6 +19,22 @@ interface AppProps {
   initialPrompt?: string;
 }
 
+// 把 **粗体** 和 `代码` 拆成带样式的片段
+function RichText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return (
+    <Text>
+      {parts.map((p, i) => {
+        if (p.startsWith("**") && p.endsWith("**"))
+          return <Text key={i} bold color="#ffeb3b">{p.slice(2, -2)}</Text>;
+        if (p.startsWith("`") && p.endsWith("`"))
+          return <Text key={i} color="#ffeb3b">{p.slice(1, -1)}</Text>;
+        return <Text key={i}>{p}</Text>;
+      })}
+    </Text>
+  );
+}
+
 export const App: React.FC<AppProps> = ({ provider, settings, tools, initialPrompt }) => {
   const { exit } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -97,7 +113,7 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
 
   useInput((_input, key) => {
     if (key.escape) {
-      if (running) { abortRef.current?.abort(); setRunning(false); return; }
+      if (running) { abortRef.current?.abort(); setRunning(false); }
     }
     if (key.ctrl && _input === "c") { exit(); }
   });
@@ -107,17 +123,13 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={0}>
-      {/* 头部 */}
       <Box>
         <Text bold color="#00bcd4">DS Code</Text>
         <Text color="#666"> v1.0.0 | {settings.model}</Text>
         {running && <Text color="#ffeb3b"> ● thinking...</Text>}
       </Box>
-
-      {/* 上线 */}
       <Text color="#005fd7">{sep}</Text>
 
-      {/* 消息历史 */}
       <Static items={messages}>
         {(msg) =>
           msg.role === "user" ? (
@@ -131,13 +143,12 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
             </Box>
           ) : (
             <Box key={msg.id} flexDirection="column" paddingLeft={3}>
-              <Text>{msg.content}</Text>
+              <RichText text={msg.content} />
             </Box>
           )
         }
       </Static>
 
-      {/* 思考/工具指示器 */}
       {thinking && (
         <Box paddingLeft={3}>
           <Text color="#ffeb3b">thinking...</Text>
@@ -150,9 +161,7 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
         </Box>
       ) : null}
 
-      {/* 输入框 */}
       <InputBox onSubmit={handleSubmit} disabled={running} />
-      {/* 下线（始终显示） */}
       <Text color="#005fd7">{sep}</Text>
       <Box paddingLeft={3}>
         <Text color="#666">/help  /status  /skills  /memory  /new</Text>
