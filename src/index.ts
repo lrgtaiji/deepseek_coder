@@ -268,12 +268,13 @@ function runRepl(
     const gitSnapshot = () => {
       try {
         const { execSync } = require("node:child_process") as typeof import("node:child_process");
-        const changed = execSync("git diff --name-only 2>/dev/null", { encoding: "utf-8", timeout: 3000, stdio: ["pipe","pipe","pipe"] }).trim();
-        const unstaged = execSync("git ls-files --others --exclude-standard 2>/dev/null", { encoding: "utf-8", timeout: 3000, stdio: ["pipe","pipe","pipe"] }).trim();
+        const opts: { encoding: "utf-8"; timeout: number; stdio: ["ignore","pipe","ignore"] } = { encoding: "utf-8", timeout: 3000, stdio: ["ignore","pipe","ignore"] };
+        const changed = execSync("git diff --name-only", opts).trim();
+        const unstaged = execSync("git ls-files --others --exclude-standard", opts).trim();
         const files = [...changed.split("\n"), ...unstaged.split("\n")].filter(Boolean);
         if (files.length > 0) editSnapshots.push({ files, time: Date.now() });
         if (editSnapshots.length > 10) editSnapshots.shift();
-      } catch { /* 非 git 仓库 */ }
+      } catch { /* 非 git 仓库或 git 命令失败 */ }
     };
 
     // 会话 token 估算
