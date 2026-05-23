@@ -254,7 +254,7 @@ function runRepl(
     const highlight = (chunk: string): string => {
       hlBuf += chunk;
       let out = "";
-      hlBuf = hlBuf.replace(/\*\*(.+?)\*\*/g, (_, t) => { out += yellow + bold + t + reset; return ""; });
+      hlBuf = hlBuf.replace(/\*\*(.+?)\*\*/g, (_, t) => { out += yellow + t + reset; return ""; });
       hlBuf = hlBuf.replace(/`([^`]+)`/g, (_, t) => { out += yellow + t + reset; return ""; });
       const si = hlBuf.lastIndexOf("**"), ti = hlBuf.lastIndexOf("`");
       if (si > -1 && cnt(hlBuf, "**") % 2 === 1) { out += hlBuf.slice(0, si); hlBuf = hlBuf.slice(si); }
@@ -576,7 +576,6 @@ function runRepl(
               assistantOutput += ev.content;
               let hl = highlight(ev.content);
               if (atLineStart) { hl = reset + M + hl; atLineStart = false; }
-              else { hl = reset + hl; }  // 每个 chunk 前强制 reset，防止加粗渗透
               if (hl.endsWith("\n")) atLineStart = true;
               process.stdout.write(hl);
               break;
