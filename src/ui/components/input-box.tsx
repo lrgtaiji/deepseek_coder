@@ -3,31 +3,24 @@ import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
 interface InputBoxProps {
-  onSubmit: (value: string) => void;
-  isThinking: boolean;
+  onSubmit: (text: string) => void;
+  disabled: boolean;
 }
 
-export const InputBox: React.FC<InputBoxProps> = ({ onSubmit, isThinking }) => {
+export const InputBox: React.FC<InputBoxProps> = ({ onSubmit, disabled }) => {
   const [value, setValue] = useState("");
 
-  const handleSubmit = (val: string) => {
-    if (!val.trim()) return;
-    onSubmit(val);
+  const handleSubmit = (text: string) => {
+    onSubmit(text);
     setValue("");
   };
 
+  if (disabled) return null;
+
   return (
-    <Box flexDirection="column">
-      <Box>
-        <Text color="green">{"dscode > "}</Text>
-        <TextInput
-          value={value}
-          onChange={setValue}
-          onSubmit={handleSubmit}
-          placeholder={isThinking ? "Thinking..." : "Ask anything..."}
-        />
-        {isThinking && <Text color="gray"> (Ctrl+C to abort)</Text>}
-      </Box>
+    <Box>
+      <Text>dscode&gt; </Text>
+      <TextInput value={value} onChange={setValue} onSubmit={handleSubmit} />
     </Box>
   );
 };

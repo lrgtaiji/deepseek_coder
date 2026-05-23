@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text, useInput, useApp, Static } from "ink";
-import TextInput from "ink-text-input";
 import { agentLoop } from "../engine/agent-loop";
+import { InputBox } from "./components/input-box";
 import type { LLMProvider } from "../providers/base-provider";
 import type { Settings } from "../config/settings";
 import type { BaseTool } from "../tools/base-tool";
@@ -25,7 +25,6 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
   const [thinking, setThinking] = useState(false);
   const [thinkingText, setThinkingText] = useState("");
   const [currentTool, setCurrentTool] = useState("");
-  const [inputText, setInputText] = useState("");
   const [running, setRunning] = useState(false);
 
   const historyRef = useRef<any[]>([]);
@@ -91,13 +90,9 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
   const handleSubmit = (text: string) => {
     const trimmed = text.trim();
     if (trimmed === "/exit" || trimmed === "/quit") { exit(); return; }
-    if (trimmed === "/clear") { setMessages([]); setInputText(""); return; }
-    if (trimmed === "/help") {
-      addMsg("system", "/status /diff /cost /memory /skills /config /compact /undo /resume /new /model /plan /clear /exit");
-      setInputText("");
-      return;
-    }
-    if (trimmed) { runAgent(trimmed); setInputText(""); }
+    if (trimmed === "/clear") { setMessages([]); return; }
+    if (trimmed === "/help") { addMsg("system", "/status /diff /cost /memory /skills /config /compact /undo /resume /new /model /plan /clear /exit"); return; }
+    if (trimmed) { runAgent(trimmed); }
   };
 
   useInput((_input, key) => {
@@ -155,16 +150,10 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
         </Box>
       ) : null}
 
-      {/* 输入框 + 下线 */}
-      {!running && (
-        <>
-          <Box>
-            <Text>dscode&gt; </Text>
-            <TextInput value={inputText} onChange={setInputText} onSubmit={handleSubmit} />
-          </Box>
-          <Text color="#005fd7">{sep}</Text>
-        </>
-      )}
+      {/* 输入框 */}
+      <InputBox onSubmit={handleSubmit} disabled={running} />
+      {/* 下线（始终显示） */}
+      <Text color="#005fd7">{sep}</Text>
     </Box>
   );
 };
