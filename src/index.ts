@@ -538,6 +538,9 @@ function runRepl(
       currentAbort = abortCtrl;
       gitSnapshot();
 
+      // 防御性 stdout 包装 — 每次写入前强制 reset，杜绝 ANSI 状态泄露
+      const safeWrite = (s: string) => process.stdout.write("\x1b[0m" + s);
+
       let thinking = false, thinkingDots = 0, thinkingStart = 0;
       let thinkingTimer: ReturnType<typeof setInterval> | null = null;
       let textStarted = false, atLineStart = false;
@@ -548,7 +551,7 @@ function runRepl(
         stopAnim();
         if (thinking) {
           const s = ((Date.now() - thinkingStart) / 1000).toFixed(1);
-          process.stdout.write(reset + "\r" + M + gray + "thinking (" + s + "s)" + reset + "\x1b[K\n");
+          safeWrite("\r" + M + gray + "thinking (" + s + "s)" + reset + "\x1b[K\n");
           thinking = false;
         }
       };
@@ -557,8 +560,8 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write("\x1b[0m\n\x1b[0m" + M + cyan + "You:" + reset + "\n");
-        process.stdout.write("\x1b[0m" + M + gray + input + reset + "\n\n");
+        safeWrite("\n" + M + cyan + "You:" + reset + "\n");
+        safeWrite(M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
           switch (ev.type) {
@@ -567,33 +570,33 @@ function runRepl(
                 thinking = true; thinkingStart = Date.now();
                 thinkingTimer = setInterval(() => {
                   thinkingDots = (thinkingDots + 1) % 4;
-                  process.stdout.write(reset + "\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset + "\x1b[K");
+                  safeWrite("\r" + M + gray + "thinking" + ".".repeat(thinkingDots + 1) + reset + "\x1b[K");
                 }, 300);
               }
               break;
             case "text": {
               finishThinking();
-              if (!textStarted) { textStarted = true; process.stdout.write(reset + M + dash + "\n"); atLineStart = true; }
+              if (!textStarted) { textStarted = true; safeWrite(M + dash + "\n"); atLineStart = true; }
               sessionTokens += ev.content.length;
               assistantOutput += ev.content;
               let hl = highlight(ev.content);
-              if (atLineStart) { hl = reset + M + hl; atLineStart = false; }
+              if (atLineStart) { hl = M + hl; atLineStart = false; }
               if (hl.endsWith("\n")) atLineStart = true;
-              process.stdout.write(hl);
+              safeWrite(hl);
               break;
             }
             case "tool_start":
               stopAnim();
-              process.stdout.write(reset + "\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\x1b[K\n");
+              safeWrite("\r" + M + gray + "[" + (ev.toolName || "tool") + "]" + reset + "\x1b[K\n");
               break;
             case "error":
-              process.stdout.write("\n" + M + gray + "Error: " + ev.content + reset + "\n");
+              safeWrite("\n" + M + gray + "Error: " + ev.content + reset + "\n");
               break;
           }
         }
         finishThinking();
-        if (hlBuf) { process.stdout.write(reset + M + hlBuf); hlBuf = ""; }
-        if (textStarted) process.stdout.write("\n");
+        if (hlBuf) { safeWrite(M + hlBuf); hlBuf = ""; }
+        if (textStarted) safeWrite("\n");
 
         // 批量保存（一次 I/O，替代原来的 2×saveMessage = 6 次 I/O）
         if (textStarted && assistantOutput) {
