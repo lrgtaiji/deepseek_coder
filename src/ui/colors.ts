@@ -4,7 +4,7 @@ export const gray = "\x1b[37m";  // 纯标准白色，无强调属性
 export const red = "\x1b[31m";
 export const green = "\x1b[32m";
 export const yellow = "\x1b[33m";
-export const blue = "\x1b[38;5;39m";
+export const blue = "\x1b[34m";
 export const cyan = "\x1b[36m";
 export const magenta = "\x1b[35m";
 
