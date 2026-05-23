@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text, useInput, useApp, Static } from "ink";
+import TextInput from "ink-text-input";
 import { agentLoop } from "../engine/agent-loop";
 import type { LLMProvider } from "../providers/base-provider";
 import type { Settings } from "../config/settings";
@@ -9,7 +10,6 @@ interface Message {
   id: number;
   role: "user" | "assistant" | "system";
   content: string;
-  toolName?: string;
 }
 
 interface AppProps {
@@ -31,11 +31,9 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
   const historyRef = useRef<any[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const msgId = useRef(0);
-  const inputRef = useRef(inputText);
-  inputRef.current = inputText;
 
-  const addMsg = useCallback((role: string, content: string, toolName?: string) => {
-    setMessages((prev) => [...prev, { id: msgId.current++, role: role as any, content, toolName }]);
+  const addMsg = useCallback((role: string, content: string) => {
+    setMessages((prev) => [...prev, { id: msgId.current++, role: role as any, content }]);
   }, []);
 
   const runAgent = useCallback(async (userInput: string) => {
@@ -56,7 +54,7 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
         switch (ev.type) {
           case "thinking":
             setThinking(true);
-            setThinkingText((prev) => prev + ev.content);
+            setThinkingText((prev) => (prev + ev.content).slice(-200));
             break;
           case "text":
             setThinking(false);
@@ -68,88 +66,49 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
           case "tool_result":
             setCurrentTool("");
             break;
-          case "finish":
-            break;
           case "error":
             setThinking(false);
             addMsg("system", "Error: " + ev.content);
             break;
         }
       }
-    } catch (e: any) {
-      if (e?.name !== "AbortError") addMsg("system", "Error: " + (e?.message || String(e)));
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err?.name !== "AbortError") addMsg("system", "Error: " + (err?.message || String(e)));
     }
 
-    if (assistantOutput.trim()) {
-      addMsg("assistant", assistantOutput.trim());
-    }
+    if (assistantOutput.trim()) addMsg("assistant", assistantOutput.trim());
     setRunning(false);
     setThinking(false);
     setCurrentTool("");
     abortRef.current = null;
   }, [provider, settings, tools, running, addMsg]);
 
-  // 初始 prompt
   useEffect(() => {
     if (initialPrompt) runAgent(initialPrompt);
   }, []);
 
-  // 快捷键
-  useInput((input, key) => {
+  const handleSubmit = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed === "/exit" || trimmed === "/quit") { exit(); return; }
+    if (trimmed === "/clear") { setMessages([]); setInputText(""); return; }
+    if (trimmed === "/help") {
+      addMsg("system", "/status /diff /cost /memory /skills /config /compact /undo /resume /new /model /plan /clear /exit");
+      setInputText("");
+      return;
+    }
+    if (trimmed) { runAgent(trimmed); setInputText(""); }
+  };
+
+  useInput((_input, key) => {
     if (key.escape) {
-      if (running) { abortRef.current?.abort(); setRunning(false); }
-      return;
+      if (running) { abortRef.current?.abort(); setRunning(false); return; }
     }
-    if (input === "\x03") { exit(); return; }  // Ctrl+C
-
-    if (running) return; // 处理中不响应输入
-
-    if (key.return) {
-      const text = inputRef.current.trim();
-      if (text.startsWith("/exit") || text === "/quit") { exit(); return; }
-      if (text === "/clear") { setMessages([]); setInputText(""); return; }
-      if (text === "/help") {
-        addMsg("system", "/status /diff /cost /memory /skills /config /compact /undo /resume /new /model /plan /clear /exit");
-        return;
-      }
-      if (text) { runAgent(text); setInputText(""); }
-      return;
-    }
-
-    if (key.backspace || key.delete) {
-      setInputText((prev) => prev.slice(0, -1));
-      return;
-    }
-    if (input && input.length === 1 && !key.ctrl) {
-      setInputText((prev) => prev + input);
-    }
+    if (key.ctrl && _input === "c") { exit(); }
   });
 
   const W = Math.min(process.stdout.columns || 80, 120);
   const sep = "─".repeat(W);
-
-  const renderMsg = (msg: Message) => {
-    if (msg.role === "user") {
-      return (
-        <Box key={msg.id} paddingLeft={3}>
-          <Text bold color="#00bcd4">You: </Text>
-          <Text color="#666">{msg.content}</Text>
-        </Box>
-      );
-    }
-    if (msg.role === "system") {
-      return (
-        <Box key={msg.id} paddingLeft={3}>
-          <Text color="#666">{msg.content}</Text>
-        </Box>
-      );
-    }
-    return (
-      <Box key={msg.id} flexDirection="column" paddingLeft={3}>
-        <Text>{msg.content}</Text>
-      </Box>
-    );
-  };
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={0}>
@@ -165,30 +124,43 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
 
       {/* 消息历史 */}
       <Static items={messages}>
-        {(msg) => renderMsg(msg)}
+        {(msg) =>
+          msg.role === "user" ? (
+            <Box key={msg.id} paddingLeft={3}>
+              <Text bold color="#00bcd4">You: </Text>
+              <Text color="#666">{msg.content}</Text>
+            </Box>
+          ) : msg.role === "system" ? (
+            <Box key={msg.id} paddingLeft={3}>
+              <Text color="#666">{msg.content}</Text>
+            </Box>
+          ) : (
+            <Box key={msg.id} flexDirection="column" paddingLeft={3}>
+              <Text>{msg.content}</Text>
+            </Box>
+          )
+        }
       </Static>
 
       {/* 思考/工具指示器 */}
       {thinking && (
         <Box paddingLeft={3}>
-          <Text color="#ffeb3b">thinking{thinkingText ? "..." : ""}</Text>
-          {thinkingText && (
-            <Text color="#666" dimColor>{" " + thinkingText.slice(-80)}</Text>
-          )}
+          <Text color="#ffeb3b">thinking...</Text>
+          {thinkingText ? <Text color="#666" dimColor>{" " + thinkingText.slice(-60)}</Text> : null}
         </Box>
       )}
-      {currentTool && (
+      {currentTool ? (
         <Box paddingLeft={3}>
           <Text color="#666">[{currentTool}]</Text>
         </Box>
-      )}
+      ) : null}
 
       {/* 输入框 + 下线 */}
       {!running && (
         <>
           <Box>
             <Text>dscode&gt; </Text>
-            <Text>{inputText}</Text>
+            <TextInput value={inputText} onChange={setInputText} onSubmit={handleSubmit} />
           </Box>
           <Text color="#005fd7">{sep}</Text>
         </>
