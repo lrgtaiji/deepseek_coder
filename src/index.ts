@@ -555,7 +555,7 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write(reset + "\n" + reset + M + cyan + cyan + "You:" + reset + "\n");
+        process.stdout.write(reset + "\n" + reset + M + cyan + "You:" + reset + "\n");
         process.stdout.write(reset + M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
