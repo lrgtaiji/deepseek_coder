@@ -555,7 +555,7 @@ function runRepl(
         const W = Math.min(process.stdout.columns || 80, 120);
         const dash = gray + M + "· ".repeat(Math.max(1, Math.floor((W - 3) / 2))).trimEnd() + reset;
 
-        process.stdout.write(reset + "\n" + M + cyan + bold + "You:" + reset + "\n");
+        process.stdout.write(reset + "\n" + reset + M + cyan + bold + "You:" + reset + "\n");
         process.stdout.write(reset + M + gray + input + reset + "\n\n");
 
         for await (const ev of agentLoop(provider, settings, tools, input, abortCtrl.signal, agentOpts, undefined, conversationHistory)) {
@@ -576,6 +576,7 @@ function runRepl(
               assistantOutput += ev.content;
               let hl = highlight(ev.content);
               if (atLineStart) { hl = reset + M + hl; atLineStart = false; }
+              else { hl = reset + hl; }  // 每个 chunk 前强制 reset，防止加粗渗透
               if (hl.endsWith("\n")) atLineStart = true;
               process.stdout.write(hl);
               break;
