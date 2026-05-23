@@ -154,6 +154,9 @@ export const App: React.FC<AppProps> = ({ provider, settings, tools, initialProm
       <InputBox onSubmit={handleSubmit} disabled={running} />
       {/* 下线（始终显示） */}
       <Text color="#005fd7">{sep}</Text>
+      <Box paddingLeft={3}>
+        <Text color="#666">/help  /status  /skills  /memory  /new</Text>
+      </Box>
     </Box>
   );
 };
